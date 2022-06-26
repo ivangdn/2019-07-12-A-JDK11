@@ -5,8 +5,11 @@
 package it.polito.tdp.food;
 
 import java.net.URL;
+import java.util.List;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.food.model.Food;
+import it.polito.tdp.food.model.FoodCalorie;
 import it.polito.tdp.food.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -41,7 +44,7 @@ public class FoodController {
     private Button btnSimula; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxFood"
-    private ComboBox<?> boxFood; // Value injected by FXMLLoader
+    private ComboBox<Food> boxFood; // Value injected by FXMLLoader
 
     @FXML // fx:id="txtResult"
     private TextArea txtResult; // Value injected by FXMLLoader
@@ -49,19 +52,74 @@ public class FoodController {
     @FXML
     void doCreaGrafo(ActionEvent event) {
     	txtResult.clear();
-    	txtResult.appendText("Creazione grafo...");
+    	int porzioni;
+    	try {
+    		porzioni = Integer.parseInt(txtPorzioni.getText());
+    	} catch(NumberFormatException e) {
+    		txtResult.setText("Il campo porzioni deve essere un valore numerico");
+    		return;
+    	}
+    	
+    	model.creaGrafo(porzioni);
+    	txtResult.appendText("GRAFO CREATO\n");
+    	txtResult.appendText(String.format("# VERTICI: %d\n# ARCHI: %d", model.nVertici(), model.nArchi()));
+    	
+    	boxFood.getItems().clear();
+    	boxFood.getItems().addAll(model.getVertici());
     }
     
     @FXML
     void doCalorie(ActionEvent event) {
     	txtResult.clear();
-    	txtResult.appendText("Analisi calorie...");
+    	Food food = boxFood.getValue();
+    	if(food==null) {
+    		txtResult.setText("Selezionare un cibo");
+    		return;
+    	}
+    	
+    	List<FoodCalorie> foodsCalorie = model.getFoodsCalorieMax(food);
+    	if(foodsCalorie==null) {
+    		txtResult.setText("Nessun risultato, prova a selezionare un nuovo cibo");
+    		return;
+    	}
+    	
+    	for(int i=0; i<5 && i<foodsCalorie.size(); i++) {
+    		txtResult.appendText(String.format("%s - %.3f\n", foodsCalorie.get(i).getFood().getDisplay_name(),
+    				foodsCalorie.get(i).getCalorie()));
+    	}
     }
 
     @FXML
     void doSimula(ActionEvent event) {
     	txtResult.clear();
-    	txtResult.appendText("Simulazione...");
+    	Food food = boxFood.getValue();
+    	if(food==null) {
+    		txtResult.setText("Selezionare un cibo");
+    		return;
+    	}
+    	
+    	int K;
+    	try {
+    		K = Integer.parseInt(txtK.getText());
+    	} catch(NumberFormatException e) {
+    		txtResult.setText("K deve essere un numero intero");
+    		return;
+    	}
+    	
+    	if(K<1 || K>10) {
+    		txtResult.setText("K deve essere un numero intero compreso tra 1 e 10, inclusi");
+    		return;
+    	}
+    	
+    	try {
+    		model.simula(K, food);
+    	} catch(IllegalArgumentException e) {
+    		txtResult.setText("Il cibo selezionato è isolato, prova a selezionare un nuovo cibo");
+    		return;
+    	}
+    	
+    	txtResult.appendText("Tempo di preparazione dei cibi: "+model.getDurata()+"\n");
+    	txtResult.appendText("Numero di cibi preparati: "+model.getNumCibiPreparati());
     }
 
     @FXML // This method is called by the FXMLLoader when initialization is complete
